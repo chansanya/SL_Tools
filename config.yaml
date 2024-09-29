@@ -14,5 +14,5 @@ games:
   wu-kong:
     name: "黑神话悟空"
     is_defuel: false
-    source: '%APPDATA%/EldenRing2/'
+    source: '%APPDATA%/wu-kong/'
     back: './back'

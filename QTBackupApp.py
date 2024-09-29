@@ -11,6 +11,7 @@ from PyQt5.QtGui import QDesktopServices
 from PyQt5.QtCore import QUrl
 import logging
 import sys
+import zipfile
 
 # 设置日志配置
 logging.basicConfig(
@@ -21,6 +22,7 @@ logging.basicConfig(
         logging.StreamHandler(sys.stdout)  # 输出到控制台
     ]
 )
+
 
 def create_dir(backup_path):
     if not os.path.exists(backup_path):
@@ -75,7 +77,8 @@ class QTBackupApp(QWidget):
         self.backup_dir = None
 
         self.button_start_backup = None
-        self.button_reset = None
+        self.button_reset_new = None
+        self.button_reset_init = None
         self.button_refresh = None
 
         # 最新存档
@@ -125,8 +128,11 @@ class QTBackupApp(QWidget):
         self.button_start_backup.clicked.connect(self.start_backup)
 
         # 回档按钮
-        self.button_reset = QPushButton('最新回档', self)
-        self.button_reset.clicked.connect(self.restore_backup)
+        self.button_reset_new = QPushButton('回档至最新', self)
+        self.button_reset_new.clicked.connect(self.restore_backup_new)
+        # 回档按钮
+        self.button_reset_init = QPushButton('回档至初始', self)
+        self.button_reset_init.clicked.connect(self.restore_backup_init)
 
         # 刷新
         self.button_refresh = QPushButton('刷新', self)
@@ -143,6 +149,7 @@ class QTBackupApp(QWidget):
         columns = ["存档名", "存档时间", "操作"]
         self.archive_table.setColumnCount(len(columns))
         self.archive_table.setHorizontalHeaderLabels(columns)
+        self.archive_table.setEditTriggers(QTableWidget.NoEditTriggers)
 
         # 设置列宽自适应窗口宽度
         self.archive_table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
@@ -171,7 +178,8 @@ class QTBackupApp(QWidget):
         # 按钮
         but_layout = QHBoxLayout()
         but_layout.addWidget(self.button_start_backup)
-        but_layout.addWidget(self.button_reset)
+        but_layout.addWidget(self.button_reset_new)
+        but_layout.addWidget(self.button_reset_init)
         but_layout.addWidget(self.button_refresh)
 
         # 最新存档
@@ -212,7 +220,7 @@ class QTBackupApp(QWidget):
         """程序启动时备份源目录为压缩包"""
         if self.source_dir and os.path.exists(self.source_dir):
             # 组装当前存档目录
-            backup_path = os.path.join(self.backup_dir,self.current_game_key, f"{self.current_game_name}默认备份")
+            backup_path = os.path.join(self.backup_dir, self.current_game_key, f"{self.current_game_name}默认备份")
             if os.path.exists(f"{backup_path}.zip"):
                 logging.warning(f"无须再次备份: {backup_path}")
                 return
@@ -236,16 +244,17 @@ class QTBackupApp(QWidget):
             # 清空表格，重置表格行数为 0
             self.archive_table.setRowCount(0)
 
+            full_paths = [os.path.join(current_backup_dir, file) for file in zip_files]
+
+            latest_file = max(full_paths, key=os.path.getctime)
+            latest_file_name = os.path.basename(latest_file)
+            # 设置最新存档
+            self.new_archive_val.setText(latest_file_name)
+
             if len(zip_files) > 0:
                 # 遍历文件并添加到表格中
                 for row, zip_name in enumerate(zip_files):
-                    # 添加文件名到第一列
-                    if row == len(zip_files) - 1:
-                        # 设置最新存档
-                        # logging.info(f"设置最新存档：{file}")
-                        self.new_archive_val.setText(zip_name)
-
-                    item1 = QTableWidgetItem(zip_name)
+                    item1 = QTableWidgetItem(os.path.splitext(zip_name)[0])
                     # 设置文本居中对齐（水平和垂直）
                     item1.setTextAlignment(Qt.AlignHCenter | Qt.AlignVCenter)
                     self.archive_table.insertRow(row)
@@ -277,13 +286,13 @@ class QTBackupApp(QWidget):
 
                     restore_button = QPushButton("回档")
                     # 绑定按钮点击事件
-                    restore_button.clicked.connect(lambda _, f=dir_path: self.restore_backup(f))
+                    restore_button.clicked.connect(lambda _, f=dir_path, n=zip_name: self.restore_backup(f, n))
                     # 添加“回档”按钮到按钮组
                     button_group_layout.addWidget(restore_button)
 
                     del_button = QPushButton("删除")
                     # 绑定按钮点击事件
-                    del_button.clicked.connect(lambda _, f=dir_path: self.del_backup(f))
+                    del_button.clicked.connect(lambda _, f=dir_path, n=zip_name: self.del_backup(f, n))
                     # 添加“删除”按钮到按钮组
                     button_group_layout.addWidget(del_button)
 
@@ -318,14 +327,31 @@ class QTBackupApp(QWidget):
         else:
             QMessageBox.warning(self, "错误", "选中的路径无效或不存在！")
 
-    def del_backup(self, path):
+    def del_backup(self, path, zip_name):
         """执行删除回档操作"""
+        if "默认备份.zip" in zip_name:
+            reply = QMessageBox.question(
+                None,  # 父窗口, 如果有的话
+                "确认操作",  # 弹窗标题
+                f"删除默认存档出现问题将无法恢复存档，您确定要删除嘛？",  # 弹窗内容
+                QMessageBox.Yes | QMessageBox.No,  # 按钮选择
+                QMessageBox.No  # 默认按钮
+            )
+
+            # 如果用户点击了 "Yes"
+            if reply == QMessageBox.Yes:
+                logging.info(f"允许删除默认配置：{path}")
+            else:
+                # QMessageBox.information(self, "提示", f"操作取消")
+                return
+
         if os.path.exists(path):
             # 实际的回档操作逻辑 (这里只是显示消息框)
             logging.info(f"删除存档：{path}")
             try:
                 os.remove(path)
-                QMessageBox.information(self, "删除成功", f"删除存档成功: {path}")
+                QMessageBox.information(self, "删除成功", f"删除存档成功")
+                logging.info(f"删除存档成功: {path}")
                 # 加载列表
                 self.refresh_table()
             except Exception as e:
@@ -338,11 +364,6 @@ class QTBackupApp(QWidget):
         if directory:
             self.entry_source.setText(directory)
 
-    def browse_backup_dir(self):
-        directory = QFileDialog.getExistingDirectory(self, "选择备份目录")
-        if directory:
-            self.entry_backup.setText(directory)
-
     def switch_game(self, game_key):
         # 当前游戏信息
         self.current_game = get_val(self.games_box_config, game_key)
@@ -351,6 +372,7 @@ class QTBackupApp(QWidget):
 
         # 识别环境变量 expandvars
         self.source_dir = os.path.expandvars(self.current_game.get("source"))
+        self.source_dir = self.source_dir.replace("\\", "/")
         self.backup_dir = os.path.expandvars(self.current_game.get("back"))
         self.entry_source.setText(self.source_dir)
         # logging.info(f"当前选择: {game_key}, game: {name}, source: {source}, back: {self.backup_dir}")
@@ -368,7 +390,7 @@ class QTBackupApp(QWidget):
             game_key = self.games_box.itemData(index)  # 选中的游戏的附加 userData (key)
             self.switch_game(game_key)
         except Exception as e:
-            logging.info(f"Error occurred: {e}")  # 捕获并打印任何异常
+            logging.info(f"切换游戏失败: {e}")  # 捕获并打印任何异常
 
     def start_backup(self):
         # 得到存档名
@@ -391,58 +413,67 @@ class QTBackupApp(QWidget):
         # 创建备份数据
 
         zip_file_path = shutil.make_archive(backup_path, 'zip', self.source_dir)
-        QMessageBox.information(self, "成功", f"备份《{zip_file_path}》完成！")
+        QMessageBox.information(self, "成功", f"《{archive_name}》存档成功！")
 
-        # self.backup_data(backup_path)
+        logging.info(f"{archive_name} 存档生成成功 ，存档路径：{zip_file_path}")
         # 加载列表
         self.refresh_table()
         # 重置存档名
         self.entry_archive_name.setText("")
 
-    def backup_data(self, backup_path):
-        # 遍历源目录并复制文件
-        for root, dirs, files in os.walk(self.source_dir):
-            # 计算当前目录相对于 self.source_dir 的相对路径
-            relative_path = os.path.relpath(root, self.source_dir)
-            # 构造备份目录中的当前文件夹路径
-            dest_dir = os.path.join(backup_path, relative_path)
+    def restore_backup_new(self):
+        archive_name = self.new_archive_val.text()
+        self.restore_backup_to_archive_name(archive_name, f"程序初始存档为《{archive_name}》，您确定回档至此嘛？")
 
-            # 如果目标目录不存在，创建它
-            if not os.path.exists(dest_dir):
-                os.makedirs(dest_dir)
-                logging.info(f"创建目录:{dest_dir}")
+    def restore_backup_init(self):
+        archive_name = f"{self.current_game_name}默认备份.zip"
+        self.restore_backup_to_archive_name(archive_name, f"程序初始存档为《{archive_name}》，您确定回档至此嘛？")
 
-            # 复制文件
-            for file in files:
-                source_file = os.path.join(root, file)
-                backup_file = os.path.join(dest_dir, file)
-                shutil.copy2(source_file, backup_file)
-                logging.info(f"备份文件: {source_file} -> {backup_file}")
+    def restore_backup_to_archive_name(self, archive_name, message):
+        backup_path = os.path.join(self.backup_dir, self.current_game_key, archive_name)
+        reply = QMessageBox.question(
+            None,  # 父窗口, 如果有的话
+            "确认操作",  # 弹窗标题
+            message,  # 弹窗内容
+            QMessageBox.Yes | QMessageBox.No,  # 按钮选择
+            QMessageBox.No  # 默认按钮
+        )
+        if reply == QMessageBox.Yes:
+            logging.info(f"允许回档至：{archive_name}")
+        else:
+            # QMessageBox.information(self, "提示", f"操作取消")
+            return
 
-        QMessageBox.information(self, "成功", f"备份《{self.current_game_name}》完成！")
+        self.restore_backup(backup_path, archive_name)
 
-    def restore_backup(self, backup_path):
+    def restore_backup(self, backup_path, zip_name):
+        logging.info(f"此次回档：{zip_name} -> {backup_path} ")
         """执行回档操作"""
         # 检查备份路径是否存在
         if not os.path.exists(backup_path):
-            QMessageBox.warning(self, "错误", "选中的备份路径不存在！")
+            QMessageBox.warning(self, "错误", "选中的存档路径不存在！")
+            return
+
+        # 确保备份路径是一个 ZIP 文件
+        if not zipfile.is_zipfile(backup_path):
+            QMessageBox.warning(self, "错误", "选中的不是有效的 ZIP 文件！")
             return
 
         # 源目录（要回档到的目标目录）
         source_dir = self.source_dir
 
-        # 2. 复制备份目录的内容到源目录
+        # 检查源目录是否存在，如果不存在则创建
+        if not os.path.exists(source_dir):
+            os.makedirs(source_dir)
+
         try:
-            for root, dirs, files in os.walk(backup_path):
-                relative_path = os.path.relpath(root, backup_path)  # 相对路径
-                target_dir = os.path.join(source_dir, relative_path)
-                if not os.path.exists(target_dir):
-                    os.makedirs(target_dir)  # 创建目标目录
+            # 打开并解压缩 ZIP 文件
+            with zipfile.ZipFile(backup_path, 'r') as zip_ref:
+                zip_ref.extractall(source_dir)  # 将压缩包中的所有文件解压到源目录
 
-                # 复制文件
-                for file in files:
-                    shutil.copy2(os.path.join(root, file), os.path.join(target_dir, file))
+            logging.info(f"成功解压 {backup_path} 到 {source_dir}")
+            QMessageBox.information(self, f"回档成功", f"回档《{os.path.splitext(zip_name)[0]}》成功！")
 
-            QMessageBox.information(self, "回档成功", "存档回档成功！")
         except Exception as e:
+            logging.error(f"回档过程中出错: {str(e)}", exc_info=True)
             QMessageBox.warning(self, "回档失败", f"回档过程中出错: {str(e)}")
