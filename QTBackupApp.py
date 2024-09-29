@@ -13,16 +13,6 @@ import logging
 import sys
 import zipfile
 
-# 设置日志配置
-logging.basicConfig(
-    level=logging.INFO,  # 设置日志级别为INFO
-    format='%(asctime)s %(levelname)s %(message)s',  # 日志格式
-    handlers=[
-        logging.FileHandler('sl.log', mode='a', encoding='utf-8'),  # 追加模式写入文件，解决中文乱码
-        logging.StreamHandler(sys.stdout)  # 输出到控制台
-    ]
-)
-
 
 def create_dir(backup_path):
     if not os.path.exists(backup_path):
@@ -31,6 +21,19 @@ def create_dir(backup_path):
         os.chmod(backup_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
     else:
         os.chmod(backup_path, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+
+
+create_dir("./logs")
+
+# 设置日志配置
+logging.basicConfig(
+    level=logging.INFO,  # 设置日志级别为INFO
+    format='%(asctime)s %(levelname)s %(message)s',  # 日志格式
+    handlers=[
+        logging.FileHandler('logs/run.log', mode='a', encoding='utf-8'),  # 追加模式写入文件，解决中文乱码
+        logging.StreamHandler(sys.stdout)  # 输出到控制台
+    ]
+)
 
 
 class QTBackupApp(QWidget):
@@ -231,7 +234,8 @@ class QTBackupApp(QWidget):
             except Exception as e:
                 logging.info(f"压缩备份时出错: {str(e)}")
         else:
-            logging.info("源目录不存在，无法备份！")
+            logging.info(f"{self.current_game_name}:源目录 :{self.source_dir} 不存在，无法备份！")
+            QMessageBox.warning(self, "错误", f"《{self.current_game_name}》源目录不存在,请检查游戏路径！")
 
     def refresh_table(self):
         """读取备份目录下的文件并添加到表格中"""
@@ -244,14 +248,13 @@ class QTBackupApp(QWidget):
             # 清空表格，重置表格行数为 0
             self.archive_table.setRowCount(0)
 
-            full_paths = [os.path.join(current_backup_dir, file) for file in zip_files]
-
-            latest_file = max(full_paths, key=os.path.getctime)
-            latest_file_name = os.path.basename(latest_file)
-            # 设置最新存档
-            self.new_archive_val.setText(latest_file_name)
-
+            zip_paths = [os.path.join(current_backup_dir, file) for file in zip_files]
             if len(zip_files) > 0:
+                latest_file = max(zip_paths, key=os.path.getctime)
+                latest_file_name = os.path.basename(latest_file)
+                # 设置最新存档
+                self.new_archive_val.setText(latest_file_name)
+
                 # 遍历文件并添加到表格中
                 for row, zip_name in enumerate(zip_files):
                     item1 = QTableWidgetItem(os.path.splitext(zip_name)[0])
@@ -306,9 +309,13 @@ class QTBackupApp(QWidget):
             create_dir(current_backup_dir)
             self.tip_columns(self.current_game_name)
 
-    def tip_columns(self, game_name):
+    def tip_columns(self, game_name, handle=None):
         self.archive_table.setRowCount(1)
-        item = QTableWidgetItem(f"《{game_name}》无存档记录")
+        message = f"《{game_name}》无存档记录"
+
+        message = handle(message) if handle else message
+        item = QTableWidgetItem(message)
+
         # 设置文本居中
         item.setTextAlignment(Qt.AlignCenter)
         self.archive_table.setItem(0, 0, item)
@@ -358,6 +365,7 @@ class QTBackupApp(QWidget):
                 logging.info(f"Error occurred: {e}")  # 捕获并打印任何异常
         else:
             QMessageBox.warning(self, "错误", "选中的存档路径无效或不存在！")
+            logging.error(f"选中的存档路径无效或不存在: {path}")
 
     def browse_source_dir(self):
         directory = QFileDialog.getExistingDirectory(self, "选择源文件目录")
