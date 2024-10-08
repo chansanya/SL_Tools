@@ -6,25 +6,23 @@ config_file_path = 'config.yaml'
 # 要写入的默认配置内容
 default_config = {
     'app': {
-        'table_refresh': 30000  # 表格刷新时间 单位毫秒
+        'table_refresh': 3000  # 表格刷新时间 单位毫秒
     },
     'windows': {
         'w': 600,
         'h': 400
     },
     'games': {
+        'wu-kong': {
+            'name': '黑神话悟空',
+            'source': '%APPDATA%/wu-kong/',
+            'back': './back'
+        },
         'EldenRing': {
-            'is_defuel': True,
             'name': '艾尔登法环',
             'source': '%APPDATA%/EldenRing/',
             'back': './back'
         },
-        'wu-kong': {
-            'name': '黑神话悟空',
-            'is_defuel': False,
-            'source': '%APPDATA%/wu-kong/',
-            'back': './back'
-        }
     }
 }
 
@@ -40,6 +38,12 @@ def check_file():
 def get_config():
     with open('config.yaml', 'r', encoding='utf-8') as file:
         return yaml.safe_load(file)
+
+
+def update_config(data):
+    # 将修改后的数据保存回 YAML 文件
+    with open('config.yaml', 'w', encoding='utf-8') as file:
+        yaml.dump(data, file, default_flow_style=False, allow_unicode=True)
 
 
 def get_games_config():

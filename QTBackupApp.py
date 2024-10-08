@@ -4,6 +4,7 @@ import shutil
 import time
 from config.config import get_val, get_config
 from PyQt5.QtWidgets import (QWidget, QLabel, QPushButton, QLineEdit, QVBoxLayout, QHBoxLayout,
+                             QMenuBar, QFrame, QAction, QDialog, QFormLayout,QDialogButtonBox,QScrollArea,
                              QFileDialog, QMessageBox, QHeaderView, QTableWidget, QComboBox, QTableWidgetItem)
 from PyQt5.QtCore import Qt
 from PyQt5.QtCore import QTimer
@@ -12,6 +13,7 @@ from PyQt5.QtCore import QUrl
 import logging
 import sys
 import zipfile
+from config.config import update_config
 
 
 def create_dir(backup_path):
@@ -47,7 +49,6 @@ class QTBackupApp(QWidget):
             raise Exception("请检查配置")
 
         self.games_box_config = get_val(self.config, "games")
-        self.win_config = get_val(self.config, "games")
         self.windows_config = get_val(self.config, "windows")
         self.app_config = get_val(self.config, "app")
 
@@ -96,12 +97,29 @@ class QTBackupApp(QWidget):
     def init_ui(self):
         self.setWindowTitle('SL工具')
 
+        # 创建布局
+        layout = QVBoxLayout()
+        # 创建菜单栏
+        menu_bar = QMenuBar(self)
+
+        # 添加"管理游戏"菜单项
+        manage_games_action = QAction("管理游戏", self)
+        menu_bar.addAction(manage_games_action)
+        # 连接菜单点击事件
+        manage_games_action.triggered.connect(self.open_manage_games_dialog)
+
+        # 添加"设置"菜单项
+        manage_settings_action = QAction("设置", self)
+        menu_bar.addAction(manage_settings_action)
+        # 连接菜单点击事件
+        manage_settings_action.triggered.connect(self.open_manage_games_dialog)
+
+
         w = get_val(self.windows_config, "w")
         h = get_val(self.windows_config, "h")
         self.setFixedSize(w, h)  # 如果你想让窗口固定大小，不允许用户调整大小
 
-        # 创建布局
-        layout = QVBoxLayout()
+
         # 创建标签
         self.select_game_label = QLabel("选择游戏:")
         # 创建下拉框
@@ -196,6 +214,8 @@ class QTBackupApp(QWidget):
         archive_list_layout.addWidget(self.archive_table_label)
         archive_list_layout.addWidget(self.archive_table)
 
+        # 设置菜单栏
+        layout.setMenuBar(menu_bar)
         # 添加到总控件
         layout.addLayout(games_layout)
         layout.addLayout(source_layout)
@@ -218,6 +238,101 @@ class QTBackupApp(QWidget):
         # 连接定时器的 timeout 信号到要执行的函数
         timer.timeout.connect(self.refresh_table)
         timer.start()
+
+    def open_manage_games_dialog(self):
+        """打开管理游戏弹窗"""
+        dialog = QDialog(self)
+        dialog.setWindowTitle("管理游戏")
+        dialog.setFixedSize(500, 400)
+
+        # 外部布局
+        dialog_layout = QVBoxLayout(dialog)
+
+        # 添加可滚动区域来显示卡片
+        scroll_area = QScrollArea(dialog)
+        scroll_area.setWidgetResizable(True)
+        scroll_content = QWidget()
+        scroll_layout = QVBoxLayout(scroll_content)
+        scroll_content.setLayout(scroll_layout)
+        scroll_area.setWidget(scroll_content)
+
+
+        # 添加游戏的表单
+        form_layout = QFormLayout()
+
+        # 游戏名输入框
+        game_name_edit = QLineEdit(dialog)
+        form_layout.addRow("游戏名:", game_name_edit)
+
+        # 源路径输入框和选择按钮
+        source_dir_edit = QLineEdit(dialog)
+        source_dir_button = QPushButton("选择源路径", dialog)
+        source_dir_button.clicked.connect(lambda: self.choose_directory(source_dir_edit))
+        source_layout = QHBoxLayout()
+        source_layout.addWidget(source_dir_edit)
+        source_layout.addWidget(source_dir_button)
+        form_layout.addRow("源路径:", source_layout)
+
+        # 存档路径输入框和选择按钮
+        backup_dir_edit = QLineEdit(dialog)
+        backup_dir_button = QPushButton("选择存档路径", dialog)
+        backup_dir_button.clicked.connect(lambda: self.choose_directory(backup_dir_edit))
+        backup_layout = QHBoxLayout()
+        backup_layout.addWidget(backup_dir_edit)
+        backup_layout.addWidget(backup_dir_button)
+        form_layout.addRow("存档路径:", backup_layout)
+
+        dialog_layout.addLayout(form_layout)
+        dialog_layout.addWidget(scroll_area)
+
+        # 确认和取消按钮
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel, dialog)
+        dialog_layout.addWidget(buttons)
+
+        # 添加游戏按钮的事件
+        buttons.accepted.connect(
+            lambda: self.add_game_card(game_name_edit.text(), source_dir_edit.text(), backup_dir_edit.text(),
+                                       scroll_layout, dialog))
+        buttons.rejected.connect(dialog.reject)
+
+        dialog.exec_()
+
+    def choose_directory(self, line_edit):
+        """打开文件选择器并将选择的路径设置到对应的 QLineEdit"""
+        directory = QFileDialog.getExistingDirectory(self, "选择文件夹", "")
+        if directory:
+            line_edit.setText(directory)
+
+    def add_game_card(self, game_name, source_dir, backup_dir, scroll_layout, dialog):
+        """添加新的游戏卡片到滚动区域"""
+        if not game_name or not source_dir or not backup_dir:
+            QMessageBox.warning(self, "错误", "请填写所有字段")
+            return
+
+        # 创建卡片小部件
+        card = QFrame()
+        card.setFrameShape(QFrame.Box)
+        card_layout = QHBoxLayout(card)
+
+        # 添加卡片内容
+        game_label = QLabel(f"游戏名: {game_name}\n源路径: {source_dir}\n存档路径: {backup_dir}", card)
+        card_layout.addWidget(game_label)
+
+        # 删除按钮
+        delete_button = QPushButton("删除", card)
+        delete_button.clicked.connect(lambda: self.remove_game_card(card, scroll_layout))
+        card_layout.addWidget(delete_button)
+
+        # 将卡片添加到布局
+        scroll_layout.addWidget(card)
+
+        # 清空输入框
+        dialog.findChild(QLineEdit, "").setText("")
+
+    def remove_game_card(self, card, scroll_layout):
+        """删除游戏卡片"""
+        scroll_layout.removeWidget(card)
+        card.deleteLater()
 
     def start_backup_at_startup(self):
         """程序启动时备份源目录为压缩包"""
@@ -370,6 +485,11 @@ class QTBackupApp(QWidget):
     def browse_source_dir(self):
         directory = QFileDialog.getExistingDirectory(self, "选择源文件目录")
         if directory:
+            # 修复路径
+            old = self.config["games"][self.current_game_key]
+            print(f"需要修改:{old}  directory:{directory}")
+            self.config["games"][self.current_game_key]["source"] = directory
+            update_config(self.config)
             self.entry_source.setText(directory)
 
     def switch_game(self, game_key):

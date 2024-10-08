@@ -1,18 +1,14 @@
 app:
-  # 表格刷新时间 单位毫秒
   table_refresh: 30000
-
-windows:
-  w: 600
-  h: 400
 games:
   EldenRing:
-    is_defuel: true
-    name: '艾尔登法环'
-    source: '%APPDATA%/EldenRing/'
-    back: './back'
+    back: ./back
+    name: 艾尔登法环
+    source: C:/Users/yf/AppData/Roaming/EldenRing
   wu-kong:
-    name: "黑神话悟空"
-    is_defuel: false
+    back: ./back
+    name: 黑神话悟空
     source: '%APPDATA%/wu-kong/'
-    back: './back'
+windows:
+  h: 400
+  w: 600
