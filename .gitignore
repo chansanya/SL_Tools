@@ -1,0 +1,42 @@
+# Dependencies
+node_modules/
+
+# Build / package output
+dist/
+out/
+release/
+build/Release/
+
+# Electron-Vite
+.vite/
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# OS
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+
+# Env
+.env
+.env.local
+
+# Python 残留(过渡期)
+__pycache__/
+*.pyc
+*.spec
+
+# Windows 安装包产物
+*.exe
+*.msi
+*.blockmap

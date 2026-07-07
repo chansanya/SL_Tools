@@ -1,3 +1,0 @@
-tkinter
-PyQt5
-pyinstaller

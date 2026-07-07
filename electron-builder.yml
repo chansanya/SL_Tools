@@ -1,0 +1,33 @@
+appId: com.chansanya.sltools
+productName: SL工具
+copyright: Copyright © 2026 chansanya
+
+directories:
+  output: dist
+  buildResources: build
+
+# 只打包构建产物 + 运行时所需, 排除源码与 map
+files:
+  - out/**/*
+  - package.json
+  - '!**/*.{ts,tsx,md}'
+  - '!**/*.map'
+
+asar: true
+
+# Windows 安装包
+win:
+  target:
+    - target: nsis
+      arch:
+        - x64
+  # icon: build/icon.ico  # 图标准备好后启用
+
+nsis:
+  oneClick: false
+  perMachine: false
+  allowToChangeInstallationDirectory: true
+  createDesktopShortcut: true
+  createStartMenuShortcut: true
+  shortcutName: SL工具
+  uninstallDisplayName: SL工具
