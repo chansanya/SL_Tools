@@ -1,16 +1,11 @@
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+import { App as AntApp, Button, Input, Space, Typography } from 'antd'
 import type { ArchiveInfo, SLConfig, SwitchGameResult } from '../../shared/types'
 import GameSelector from './components/GameSelector'
-import SourceBar from './components/SourceBar'
-import ArchiveForm from './components/ArchiveForm'
-import ActionBar from './components/ActionBar'
-import LatestArchive from './components/LatestArchive'
 import ArchiveTable from './components/ArchiveTable'
-import ConfirmDialog, { type ConfirmHandle } from './components/ConfirmDialog'
-import Toast, { type ToastHandle } from './components/Toast'
 import TitleBar from './components/TitleBar'
 
-type ToastKind = 'info' | 'success' | 'error'
+const { Text } = Typography
 
 export default function App(): JSX.Element {
   const [config, setConfig] = useState<SLConfig | null>(null)
@@ -21,25 +16,17 @@ export default function App(): JSX.Element {
   const [name, setName] = useState('')
   const [busy, setBusy] = useState(false)
 
-  const confirmRef = useRef<ConfirmHandle>(null)
-  const toastRef = useRef<ToastHandle>(null)
-
-  const toast = (text: string, kind: ToastKind = 'info'): void => {
-    toastRef.current?.show(text, kind)
-  }
-  const confirm = (title: string, message: string): Promise<boolean> =>
-    confirmRef.current?.ask(title, message) ?? Promise.resolve(false)
+  const { message, modal } = AntApp.useApp()
 
   const refresh = useCallback(async (): Promise<void> => {
     if (!gameKey) return
     try {
       setArchives(await window.api.listArchives(gameKey))
     } catch (e) {
-      toast(String(e), 'error')
+      message.error(String(e))
     }
-  }, [gameKey])
+  }, [gameKey, message])
 
-  // 加载配置, 默认选首个游戏
   useEffect(() => {
     window.api
       .getConfig()
@@ -48,10 +35,9 @@ export default function App(): JSX.Element {
         const first = Object.keys(cfg.games)[0]
         if (first) setGameKey(first)
       })
-      .catch((e) => toast(String(e), 'error'))
-  }, [])
+      .catch((e) => message.error(String(e)))
+  }, [message])
 
-  // 切换游戏: 触发默认备份自检 + 刷新列表
   useEffect(() => {
     if (!gameKey) return
     let cancelled = false
@@ -61,29 +47,38 @@ export default function App(): JSX.Element {
         if (cancelled) return
         setSwitched(r)
         setSourceDir(r.sourceDir)
-        if (r.createdDefault) toast(`已生成《${r.gameName}》初始默认备份`, 'success')
+        if (r.createdDefault) message.success(`已生成《${r.gameName}》初始默认备份`)
       })
       .then(() => refresh())
-      .catch((e) => toast(String(e), 'error'))
+      .catch((e) => message.error(String(e)))
     return () => {
       cancelled = true
     }
-  }, [gameKey, refresh])
+  }, [gameKey, refresh, message])
 
-  // 定时刷新(对应 QTimer, 间隔取自 config.app.table_refresh)
   useEffect(() => {
     if (!config) return
     const id = setInterval(() => refresh(), config.app.table_refresh)
     return () => clearInterval(id)
   }, [config, refresh])
 
-  const games = config?.games ?? {}
+  const confirmDialog = (title: string, content: string): Promise<boolean> =>
+    new Promise((resolve) => {
+      modal.confirm({
+        title,
+        content,
+        okText: '确定',
+        cancelText: '取消',
+        onOk: () => resolve(true),
+        onCancel: () => resolve(false)
+      })
+    })
 
   const handlePickSource = async (): Promise<void> => {
     const p = await window.api.pickSource()
     if (p) {
       setSourceDir(p)
-      toast('源目录已更新(本次会话生效)', 'success')
+      message.success('源目录已更新(本次会话生效)')
     }
   }
 
@@ -93,48 +88,48 @@ export default function App(): JSX.Element {
     try {
       await window.api.createArchive(gameKey, name, sourceDir)
       setName('')
-      toast('存档成功', 'success')
+      message.success('存档成功')
       await refresh()
     } catch (e) {
-      toast(String(e), 'error')
+      message.error(String(e))
     } finally {
       setBusy(false)
     }
   }
 
   const handleRestore = async (a: ArchiveInfo): Promise<void> => {
-    const ok = await confirm('确认回档', `将回档至《${a.name}》, 当前源目录文件会被覆盖, 是否继续?`)
+    const ok = await confirmDialog('确认回档', `将回档至《${a.name}》, 当前源目录文件会被覆盖, 继续?`)
     if (!ok) return
     try {
       await window.api.restoreArchive(gameKey, a.path, sourceDir)
-      toast(`回档《${a.name}》成功`, 'success')
+      message.success(`回档《${a.name}》成功`)
       await refresh()
     } catch (e) {
-      toast(String(e), 'error')
+      message.error(String(e))
     }
   }
 
   const handleDelete = async (a: ArchiveInfo): Promise<void> => {
-    const isDefault = a.fileName.endsWith('默认备份.zip')
-    const ok = await confirm(
-      isDefault ? '删除默认存档' : '删除存档',
-      isDefault
+    const def = a.fileName.endsWith('默认备份.zip')
+    const ok = await confirmDialog(
+      def ? '删除默认存档' : '删除存档',
+      def
         ? `《${a.name}》是默认存档, 删除后将无法恢复初始存档, 确定?`
         : `确认删除《${a.name}》?`
     )
     if (!ok) return
     try {
       await window.api.deleteArchive(gameKey, a.path)
-      toast('删除成功', 'success')
+      message.success('删除成功')
       await refresh()
     } catch (e) {
-      toast(String(e), 'error')
+      message.error(String(e))
     }
   }
 
   const handleRestoreLatest = async (): Promise<void> => {
     if (archives.length === 0) {
-      toast('暂无存档', 'info')
+      message.info('暂无存档')
       return
     }
     await handleRestore(archives[0])
@@ -142,49 +137,87 @@ export default function App(): JSX.Element {
 
   const handleRestoreInit = async (): Promise<void> => {
     if (!switched) return
-    const initName = `${switched.gameName}默认备份`
-    const init = archives.find((a) => a.name === initName)
+    const init = archives.find((a) => a.name === `${switched.gameName}默认备份`)
     if (!init) {
-      toast('未找到初始默认存档', 'error')
+      message.error('未找到初始默认存档')
       return
     }
     await handleRestore(init)
   }
 
-  const handleOpen = async (path: string): Promise<void> => {
+  const handleOpen = async (p: string): Promise<void> => {
     try {
-      await window.api.openPath(path)
+      await window.api.openPath(p)
     } catch (e) {
-      toast(String(e), 'error')
+      message.error(String(e))
     }
   }
 
-  if (!config) return <div className="loading">加载中…</div>
+  if (!config) {
+    return (
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: '100%',
+          color: '#9aa3b2'
+        }}
+      >
+        加载中…
+      </div>
+    )
+  }
 
   return (
     <div className="app">
       <TitleBar />
       <header className="app-header">
         <div className="current-game">{switched?.gameName ?? '—'}</div>
-        <GameSelector games={games} value={gameKey} onChange={setGameKey} />
+        <GameSelector games={config.games} value={gameKey} onChange={setGameKey} />
       </header>
 
       <main className="app-main">
-        <SourceBar
-          sourceDir={sourceDir}
-          onPick={handlePickSource}
-          onOpen={() => handleOpen(sourceDir)}
-        />
+        <div className="card-row">
+          <Text type="secondary">源存档目录</Text>
+          <Space.Compact style={{ flex: 1 }}>
+            <Input value={sourceDir} readOnly />
+            <Button onClick={handlePickSource}>重新选择</Button>
+            <Button onClick={() => handleOpen(sourceDir)}>打开</Button>
+          </Space.Compact>
+        </div>
 
-        <ArchiveForm name={name} setName={setName} onCreate={handleCreate} busy={busy} />
+        <div className="card-row">
+          <Text type="secondary">存档名</Text>
+          <Space.Compact style={{ flex: 1 }}>
+            <Input
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              onPressEnter={handleCreate}
+              placeholder="留空则用时间戳自动命名"
+            />
+            <Button type="primary" onClick={handleCreate} loading={busy}>
+              存档
+            </Button>
+          </Space.Compact>
+        </div>
 
-        <ActionBar
-          onRestoreLatest={handleRestoreLatest}
-          onRestoreInit={handleRestoreInit}
-          onRefresh={refresh}
-        />
+        <Space>
+          <Button type="primary" ghost onClick={handleRestoreLatest}>
+            回档至最新
+          </Button>
+          <Button type="primary" ghost onClick={handleRestoreInit}>
+            回档至初始
+          </Button>
+          <Button onClick={refresh}>刷新</Button>
+        </Space>
 
-        <LatestArchive name={archives[0]?.name ?? ''} />
+        <div>
+          <Text type="secondary">最新存档 </Text>
+          <Text strong style={{ color: '#4f8cff' }}>
+            {archives[0]?.name ?? '—'}
+          </Text>
+        </div>
 
         <ArchiveTable
           archives={archives}
@@ -193,9 +226,6 @@ export default function App(): JSX.Element {
           onDelete={handleDelete}
         />
       </main>
-
-      <ConfirmDialog ref={confirmRef} />
-      <Toast ref={toastRef} />
     </div>
   )
 }

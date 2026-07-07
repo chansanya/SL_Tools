@@ -2,6 +2,7 @@ import { app, BrowserWindow, shell } from 'electron'
 import path from 'path'
 import { ensureConfig, getConfig } from './services/config'
 import { registerIpc } from './ipc'
+import log from './services/logger'
 
 let mainWindow: BrowserWindow | null = null
 
@@ -17,7 +18,7 @@ function createWindow(): void {
     autoHideMenuBar: true,
     frame: false,
     title: 'SL工具',
-    backgroundColor: '#14110f',
+    backgroundColor: '#f5f7fa',
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
       sandbox: false,
@@ -30,6 +31,14 @@ function createWindow(): void {
   mainWindow.on('closed', () => {
     mainWindow = null
   })
+
+  // 把 renderer 控制台/崩溃日志转到主进程 stdout, 便于诊断
+  mainWindow.webContents.on('console-message', (_e, level, message) =>
+    log.info(`[renderer:${level}] ${message}`)
+  )
+  mainWindow.webContents.on('render-process-gone', (_e, d) =>
+    log.error(`[renderer-gone] reason=${d.reason} exitCode=${d.exitCode}`)
+  )
 
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     shell.openExternal(url)

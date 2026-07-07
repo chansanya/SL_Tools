@@ -1,3 +1,4 @@
+import { Select } from 'antd'
 import type { GameConfig } from '../../../shared/types'
 
 interface Props {
@@ -8,15 +9,11 @@ interface Props {
 
 export default function GameSelector({ games, value, onChange }: Props): JSX.Element {
   return (
-    <div className="row">
-      <span className="label">选择游戏</span>
-      <select className="select" value={value} onChange={(e) => onChange(e.target.value)}>
-        {Object.entries(games).map(([key, g]) => (
-          <option key={key} value={key}>
-            {g.name}
-          </option>
-        ))}
-      </select>
-    </div>
+    <Select
+      value={value}
+      onChange={onChange}
+      style={{ width: 200 }}
+      options={Object.entries(games).map(([key, g]) => ({ value: key, label: g.name }))}
+    />
   )
 }

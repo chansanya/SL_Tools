@@ -15,7 +15,9 @@
     "typecheck": "npm run typecheck:node && npm run typecheck:web"
   },
   "dependencies": {
+    "@ant-design/icons": "^5.6.1",
     "adm-zip": "^0.5.16",
+    "antd": "^5.29.3",
     "electron-log": "^5.2.4",
     "js-yaml": "^4.1.0"
   },
