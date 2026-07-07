@@ -1,3 +1,8 @@
+# 在 Linux/WSL/macOS 上打 Windows 安装包的构建镜像。
+# electron-builder 生成 nsis 安装包时, 要用 wine 跑 NSIS 编译器(32 位), 所以装 wine32+64。
+#
+# 下面基础镜像走 daocloud、apt 走清华源是国内加速;
+# 海外或自建 registry 换回官方即可:  FROM node:20-bookworm-slim  并删掉换源那两行 sed。
 FROM docker.m.daocloud.io/library/node:20-bookworm-slim
 
 ENV DEBIAN_FRONTEND=noninteractive WINEDEBUG=-all

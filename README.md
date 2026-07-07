@@ -2,7 +2,7 @@
 
 单机游戏存档的「存档（Save）/ 回档（Load）」桌面工具。把游戏存档目录压缩成 ZIP 实现备份，解压覆盖实现回档。内置支持艾尔登法环、黑神话悟空，**新增游戏只需改一处配置**。
 
-基于 Electron + React + TypeScript 重写，深色游戏风 UI，支持 Windows 一键安装。
+基于 Electron + React + TypeScript 重写，Ant Design 浅色 UI，支持 Windows 一键安装。
 
 ## 功能
 
@@ -16,9 +16,8 @@
 ## 技术栈
 
 - **Electron 33** + **electron-vite** + **electron-builder**
-- **React 18** + **TypeScript 5**
+- **React 18** + **TypeScript 5** + **Ant Design 5**（UI 组件库）
 - **adm-zip**（压缩/解压）· **js-yaml**（配置）· **electron-log**（日志）
-- 纯 CSS + CSS 变量（深色游戏风，无 UI 重型库）
 
 ## 开发
 
@@ -36,13 +35,29 @@ npm run typecheck  # 类型检查
 
 ## 打包 Windows 安装包
 
-> 需在 **Windows** 环境执行（Linux/macOS 打 Windows nsis 需额外 wine）。
+产物为 NSIS 安装器（可选安装路径、创建桌面/开始菜单快捷方式）。
+
+### 方式一：Windows 本机（最简单）
 
 ```shell
 npm run build:win  # 产出 dist/SL工具 Setup <version>.exe
 ```
 
-产物为 NSIS 安装器（可选安装路径、创建桌面/开始菜单快捷方式）。
+### 方式二：Linux / WSL / macOS 用 Docker
+
+非 Windows 环境打 Windows nsis 包需要 wine。本项目提供 Dockerfile（含 wine32+64），一键脚本：
+
+```shell
+bash scripts/build-win.sh
+```
+
+脚本自动完成：构建含 wine 的镜像 → 容器内 `npm ci && npm run build:win` → 产物落到 `dist/`。
+
+- 容器内用 npmmirror 加速 electron 和 nsis 资源下载
+- 用独立卷 `sl-node-modules` 装依赖，**不污染本机 node_modules**
+- 镜像内 apt 换清华源加速 wine 安装；海外构建可改 Dockerfile 换回官方源
+
+> 若 Docker 拉基础镜像失败，把 Dockerfile 的 `FROM` 改成你能访问的 registry 镜像。
 
 **应用图标**：在 `build/` 放置 `icon.ico`（或 256×256 以上的 `icon.png`），然后取消 `electron-builder.yml` 中 `win.icon` 的注释。
 
@@ -100,7 +115,7 @@ src/
 │   └── src/
 │       ├── App.tsx
 │       ├── components/
-│       └── styles/    theme.css(变量) / global.css
+│       └── styles/    global.css(布局/标题栏)
 └── shared/            三端共享类型契约(纯类型)
 ```
 
