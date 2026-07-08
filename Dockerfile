@@ -16,4 +16,8 @@ RUN sed -i 's|deb.debian.org|mirrors.tuna.tsinghua.edu.cn|g; s|security.debian.o
     apt-get install -y --no-install-recommends wine wine32 wine64 ca-certificates && \
     rm -rf /var/lib/apt/lists/*
 
+# 内置镜像源(国内加速), docker run 不必再传 -e
+ENV ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/
+ENV ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/
+
 WORKDIR /project

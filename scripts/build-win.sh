@@ -17,10 +17,9 @@ fi
 
 echo "==> [2/2] 容器内执行 npm ci + build:win ..."
 docker run --rm \
-  -e ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ \
-  -e ELECTRON_BUILDER_BINARIES_MIRROR=https://npmmirror.com/mirrors/electron-builder-binaries/ \
   -v "$(pwd):/project" \
   -v sl-node-modules:/project/node_modules \
+  -v sl-eb-cache:/root/.cache \
   -w /project \
   "$IMAGE" \
   bash -c "npm ci && npm run build:win"
