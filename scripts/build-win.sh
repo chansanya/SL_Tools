@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # 在 Linux / WSL / macOS 上用 Docker 打 Windows 安装包(无需本机装 wine)
 # 产物: dist/SL工具 Setup <version>.exe
-set -euo pipefail
+set -eu
 
 # 切到项目根(本脚本位于 scripts/)
 cd "$(dirname "$0")/.."
