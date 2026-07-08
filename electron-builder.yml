@@ -15,14 +15,18 @@ files:
 
 asar: true
 
-# Windows 安装包
+# Windows: nsis 安装包 + portable 免安装绿色版
 win:
   target:
     - target: nsis
       arch:
         - x64
+    - target: portable
+      arch:
+        - x64
   # icon: build/icon.ico  # 图标准备好后启用
 
+# 安装版(NSIS): 可选安装路径, 建快捷方式
 nsis:
   oneClick: false
   perMachine: false
@@ -31,3 +35,7 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: SL工具
   uninstallDisplayName: SL工具
+
+# 免安装绿色版: 单文件 exe, 双击即用, 配置/备份随 exe 携带
+portable:
+  artifactName: ${productName}-绿色版-${version}.exe

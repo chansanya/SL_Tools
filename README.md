@@ -33,9 +33,12 @@ npm run build      # 编译主进程/preload/renderer 到 out/
 npm run typecheck  # 类型检查
 ```
 
-## 打包 Windows 安装包
+## 打包 Windows 可执行文件
 
-产物为 NSIS 安装器（可选安装路径、创建桌面/开始菜单快捷方式）。
+一次打包产出**两个版本**（都在 `dist/`）：
+
+- **`SL工具 Setup <version>.exe`** — NSIS 安装版：可选安装路径、建桌面/开始菜单快捷方式；配置存 `%APPDATA%\SL工具\`。
+- **`SL工具-绿色版-<version>.exe`** — 免安装便携版：单文件，**双击即用**，配置和备份随 exe 携带（exe 同级生成 `data/` 和 `back/`），拷到 U 盘换机器也能跑。
 
 ### 方式一：Windows 本机（最简单）
 

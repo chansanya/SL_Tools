@@ -26,7 +26,8 @@ export function normalizePath(input: string): string {
 export function resolveBackPath(back: string): string {
   const p = normalizePath(back)
   if (path.isAbsolute(p)) return p
-  const exeDir = path.dirname(app.getPath('exe'))
+  // portable 版数据跟 exe 携带(PORTABLE_EXECUTABLE_DIR); 否则按 exe 所在目录
+  const exeDir = process.env.PORTABLE_EXECUTABLE_DIR ?? path.dirname(app.getPath('exe'))
   return path.join(exeDir, p)
 }
 

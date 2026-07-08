@@ -56,6 +56,10 @@ function createWindow(): void {
 
 app.whenReady().then(() => {
   app.setAppUserModelId('com.chansanya.sltools')
+  // portable 免安装版: 配置/日志随 exe 携带(绿色); nsis 安装版仍用标准 %APPDATA%
+  if (process.env.PORTABLE_EXECUTABLE_DIR) {
+    app.setPath('userData', path.join(process.env.PORTABLE_EXECUTABLE_DIR, 'data'))
+  }
   ensureConfig()
   registerIpc()
   createWindow()
