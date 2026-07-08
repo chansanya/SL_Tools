@@ -39,7 +39,8 @@ nsis:
   createStartMenuShortcut: true
   shortcutName: SL工具
   uninstallDisplayName: SL工具
+  artifactName: SL-Tools-Setup-${version}.exe
 
 # 免安装绿色版: 单文件 exe, 双击即用, 配置/备份随 exe 携带
 portable:
-  artifactName: ${productName}-绿色版-${version}.exe
+  artifactName: SL-Tools-Portable-${version}.exe
