@@ -2,6 +2,10 @@ appId: com.chansanya.sltools
 productName: SL工具
 copyright: Copyright © 2026 chansanya
 
+# 禁用 electron-builder 自带的自动发布(它会因检测到 tag 而索要 GH_TOKEN)。
+# Release 由 .github/workflows/release.yml 里的 softprops/action-gh-release 负责创建。
+publish: null
+
 directories:
   output: dist
   buildResources: build
