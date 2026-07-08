@@ -16,7 +16,7 @@ function gameOf(key: string): { cfg: GameConfig; source: string; back: string } 
   const games = getConfig().games
   const cfg = games[key]
   if (!cfg) throw new Error(`未知游戏标识: ${key}`)
-  return { cfg, source: resolveSourcePath(cfg.source), back: cfg.back }
+  return { cfg, source: resolveSourcePath(cfg.source), back: cfg.back ?? './back' }
 }
 
 /** 统一异常处理: 记录日志后抛出, 由前端 invoke().catch 接管弹窗 */

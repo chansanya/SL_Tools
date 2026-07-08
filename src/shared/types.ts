@@ -3,7 +3,8 @@
 export interface GameConfig {
   name: string
   source: string
-  back: string
+  /** 备份根目录, 相对 exe 所在目录; 省略则默认 './back' */
+  back?: string
   is_default?: boolean
 }
 

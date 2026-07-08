@@ -83,12 +83,12 @@ games:
   EldenRing:
     name: '艾尔登法环'
     source: '%APPDATA%/EldenRing/'   # 源存档目录, 支持 %APPDATA% 等环境变量
-    back: './back'                   # 备份根目录(相对 exe 所在目录)
+    back: './back'                   # 备份根目录, 可省略(默认 ./back), 相对 exe 所在目录
     is_default: true
   wu-kong:
     name: '黑神话悟空'
     source: '%APPDATA%/wu-kong/'
-    back: './back'
+    # back 省略, 默认 ./back
     is_default: false
 ```
 
@@ -100,10 +100,11 @@ games:
   NewGame:
     name: '新游戏'
     source: '%APPDATA%/NewGame/'
-    back: './back'
+    # back 可省略, 默认 ./back
 ```
 
 `source` 支持 `%APPDATA%`、`%USERPROFILE%`、`%LOCALAPPDATA%` 等 Windows 环境变量。
+`back` 省略时默认 `./back`（相对 exe 所在目录）。
 
 ## 目录结构
 
