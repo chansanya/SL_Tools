@@ -66,10 +66,10 @@ bash scripts/build-win.sh
 
 ## 配置
 
-首次启动会在用户目录生成默认配置：
+首次启动会生成默认配置，位置取决于你用的是哪种版本：
 
-- Windows: `%APPDATA%/SL工具/config.yaml`
-- Linux: `~/.config/SL工具/config.yaml`
+- **安装版**：`%APPDATA%\SL工具\config.yaml`（即 `C:\Users\<用户名>\AppData\Roaming\SL工具\`）
+- **绿色版**：exe 同级 `data\config.yaml`（随 exe 携带，换机器不丢）
 
 配置示例与字段：
 
