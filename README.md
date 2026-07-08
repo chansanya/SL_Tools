@@ -136,3 +136,16 @@ src/
 ## 从 Python 版迁移
 
 本项目由原 Python + PyQt5 版本重写而来（见 git 历史 `master` 分支）。功能 1:1 还原，并修复了原版「重新选择源目录」未真正生效的问题。
+
+## 自动发布（GitHub Actions）
+
+打 tag 即自动构建并发布 Release（GitHub 提供的 Windows 环境，**无需本机 Docker/wine**）：
+
+```shell
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+触发后 Actions 会：在 `windows-latest` 上 `npm ci && build:win` → 创建 GitHub Release → 上传 `SL工具 Setup` 和 `SL工具-绿色版` 两个 exe，附自动生成的更新日志。
+
+也可在仓库 **Actions → Release → Run workflow** 手动触发。配置见 [.github/workflows/release.yml](.github/workflows/release.yml)。
